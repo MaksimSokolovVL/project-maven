@@ -11,13 +11,51 @@
     <properties>
         <maven.compiler.source>18</maven.compiler.source>
         <maven.compiler.target>18</maven.compiler.target>
+        <junit-jupiter-engine.version>5.8.2</junit-jupiter-engine.version>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.12.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>18.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>${junit-jupiter-engine.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit-jupiter-engine.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.javarush</groupId>
+            <artifactId>desktop-game-engine</artifactId>
+            <version>1.0</version>
+        </dependency>
+
 
     </dependencies>
 
     <build>
+        <resources>  <!-- Просто указываем папку dependency как ресурс, тем самым опадает в jar/war -->
+            <resource>
+                <directory>${project.build.directory}/dependency</directory>
+                <targetPath>lib/</targetPath> <!-- папка в jar/war для складывания зависимостей -->
+            </resource>
+        </resources>
+
+
         <plugins>
             <!-- Usual compilation -->
             <plugin>
@@ -38,7 +76,65 @@
                     <mainClass>com.javarush.games.racer.RacerGame</mainClass>
                 </configuration>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>2.4</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath> <!--хотим добавить Classpath-->
+                            <!-- умеет использовать classpath из JAR-файлов, а также умеет стартовать приложение на JavaFX-->
+                            <classpathPrefix>lib/</classpathPrefix> <!--папка с добавленными зависимостями-->
+                            <mainClass>org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader</mainClass> <!--точка входа-->
+                            <!-- добавляем кастомные строки - если требуется-->
+                        </manifest>
+                        <manifestEntries>
+                            <Rsrc-Main-Class>com.javarush.games.racer.RacerGame</Rsrc-Main-Class>
+                            <Class-Path>./</Class-Path> <!--текущая директория -->
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <outputDirectory>${project.build.directory}/dependency</outputDirectory> <!--куда складываем зависимости -->
+                    <includeScope>compile</includeScope> <!--зависимости только для runtime(без junit) -->
+                </configuration>
+                <executions> <!--как будем копировать -->
+                    <execution>
+                        <phase>generate-resources
+                        </phase><!--когда будет происходить, чтобы зависимости попали раньше, чем мы собираем jar -->
+                        <goals> <!--цель -> что именно хотим сделать -->
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.22.2</version>
+                <configuration>
+                    <excludes>
+                        <exclude>StrangeTest</exclude> <!--skip class test-->
+                    </excludes>
+                </configuration>
+            </plugin>
+
+
         </plugins>
     </build>
-
 </project>
